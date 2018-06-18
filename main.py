@@ -186,11 +186,11 @@ class CanvasWidget(Widget):
         elif self.now_mode == Mode.ForegroundMode:
             with self.canvas:
                 Color(1,0,0,0.3, mode="rgba")
-                self.foreground = Line(points=(touch.x, touch.y))
+                self.foreground = Line(points=(touch.x, touch.y), width=10)
         elif self.now_mode == Mode.BackgroundMode:
             with self.canvas:
                 Color(0,1,0,0.3,mode="rgba")
-                self.background = Line(points=(touch.x, touch.y))
+                self.background = Line(points=(touch.x, touch.y), width=10)
 
     def on_touch_move(self, touch):
         if touch.x > self.size[0] or touch.y > self.size[1]:
