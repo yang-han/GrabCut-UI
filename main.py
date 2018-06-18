@@ -249,13 +249,16 @@ class CanvasWidget(Widget):
         self.rect.source=source
 
     def do_reset(self):
+        self.canvas.clear()
         self.point_1=(None, None)
         self.point_2=(None, None)
         self.foreground_points=list()
         self.background_points=list()
         self.now_mode=Mode.NoneMode
         self.draw_rect=None
-        self.update_source(self.origin_source)
+        self.draw_img()
+        self.update_source(self.origin_source) # new img
+
 
     def do_iter(self):
         if self.point_1 == (None, None):
@@ -267,6 +270,11 @@ class CanvasWidget(Widget):
                          self.point_1[1] / self.size[1])
         point_ratio_2=(self.point_2[0] / self.size[0],
                          self.point_2[1] / self.size[1])
+        y0 = min(1-point_ratio_1[1], 1-point_ratio_2[1])
+        x0 = min(point_ratio_1[0], point_ratio_2[0])
+        y1 = max(1-point_ratio_1[1], 1-point_ratio_2[1])
+        x1 = max(point_ratio_1[0], point_ratio_2[0])
+        rect_ration = [y0, x0, y1, x1]
         print(point_ratio_1, point_ratio_2)
         
         grab_cut()
