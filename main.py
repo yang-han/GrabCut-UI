@@ -2,15 +2,13 @@ from kivy.uix.widget import Widget
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.lang import Builder
-from kivy.clock import Clock
-from kivy.base import runTouchApp
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.graphics import Color, Line, Rectangle
 from kivy.uix.filechooser import FileChooserIconView
 from enum import Enum, unique
 from random import random
-
+import grabcut
 Builder.load_string('''
 <MyScreenManager>:
     FileScreen
@@ -31,19 +29,10 @@ Builder.load_string('''
     name: 'main'
     id: main
 ''')
-
 Builder.load_string('''
 <ButtonTab>
     id: button_tab
     orientation: "vertical"
-    Button:
-        id: iter
-        text: "iter"
-        on_release: root.parent.do_iter()
-    Button:
-        id: reset
-        text: "reset"
-        on_release: root.parent.do_reset()
     Button:
         id: rectangle_mode
         text: "rectangle mode"
@@ -56,6 +45,18 @@ Builder.load_string('''
         id: backgroud_points_mode
         text: "backgroud points mode"
         on_release: root.parent.set_backgroud_mode()
+    Button:
+        id: iter
+        text: "iter"
+        on_release: root.parent.do_iter()
+    Button:
+        id: matting
+        text: "matting"
+        on_release: root.parent.do_matting()
+    Button:
+        id: reset
+        text: "reset"
+        on_release: root.parent.do_reset()
     Button:
         id: back_file
         text: "back"
@@ -80,12 +81,12 @@ class MyScreenManager(ScreenManager):
         self.path = None
 
     def echo(self):
-        print('sm: ', self.path)
+        print(('sm: ', self.path))
 
     def to_main(self):
         print("tomain")
         self.current = 'main'
-        print(self.current_screen)
+        print((self.current_screen))
         self.current_screen.set_path(self.path)
 
 
@@ -97,7 +98,7 @@ class FileScreen(Screen):
     def open(self, path, filename):
         if len(filename) < 1:
             return
-        print(filename[0])
+        print((filename[0]))
         self.manager.path = filename[0]
         self.manager.to_main()
         self.manager.echo()
@@ -114,7 +115,7 @@ class MainScreen(Screen):
 
     def set_path(self, path):
         print('setting path.....')
-        print(self.widget.canvas_widget.set_origin(path))
+        print((self.widget.canvas_widget.set_origin(path)))
 
 
 class MainWidget(BoxLayout):
@@ -132,6 +133,10 @@ class MainWidget(BoxLayout):
     def do_reset(self):
         print("main reseting ...")
         self.canvas_widget.do_reset()
+
+    def do_matting(self):
+        print("mating...")
+        self.canvas_widget.do_matting()
 
     def set_rectangle_mode(self):
         print("now at RectangleMode")
@@ -182,7 +187,7 @@ class CanvasWidget(Widget):
             return
         if self.now_mode == Mode.RectangleMode:
             self.point_1 = (touch.x, touch.y)
-            print(self.point_1)
+            print((self.point_1))
         elif self.now_mode == Mode.ForegroundMode:
             with self.canvas:
                 Color(1,0,0,0.3, mode="rgba")
@@ -202,7 +207,7 @@ class CanvasWidget(Widget):
                 pos = (min(self.point_1[0], self.point_2[0]), min(self.point_1[1], self.point_2[1]))
                 size=(abs(self.point_2[0] - self.point_1[0]),
                       abs(self.point_2[1] - self.point_1[1]))
-                print(pos, size)
+                print((pos, size))
                 print("draw rect")
                 if self.draw_rect == None:
                     self.draw_rect=Rectangle(pos = pos, size = size)
@@ -223,19 +228,19 @@ class CanvasWidget(Widget):
         if touch.x > self.size[0] or touch.y > self.size[1]:
             return
         self.point_2=(touch.x, touch.y)
-        print(self.point_2)
+        print((self.point_2))
         if self.now_mode == Mode.ForegroundMode:
             with self.canvas:
                 Color(1,0,0,0.3, mode="rgba")
                 self.foreground.points += (touch.x, touch.y)
                 self.foreground_points += self.foreground.points
-            print(self.foreground_points)
+            print((self.foreground_points))
         elif self.now_mode == Mode.BackgroundMode:
             with self.canvas:
                 Color(0,1,0,0.3,mode="rgba")
                 self.background.points += (touch.x, touch.y)
                 self.background_points += self.background.points
-            print(self.background_points)
+            print((self.background_points))
 
     def update_rect(self, *args):
         self.rect.pos=self.pos
@@ -258,14 +263,17 @@ class CanvasWidget(Widget):
         self.draw_rect=None
         self.draw_img()
         self.update_source(self.origin_source) # new img
+    
+    def do_matting(self):
+        pass
 
 
     def do_iter(self):
         if self.point_1 == (None, None):
             return
         print('---')
-        print(self.point_1)
-        print(self.size)
+        print((self.point_1))
+        print((self.size))
         point_ratio_1=(self.point_1[0] / self.size[0],
                          self.point_1[1] / self.size[1])
         point_ratio_2=(self.point_2[0] / self.size[0],
@@ -275,9 +283,10 @@ class CanvasWidget(Widget):
         y1 = max(1-point_ratio_1[1], 1-point_ratio_2[1])
         x1 = max(point_ratio_1[0], point_ratio_2[0])
         rect_ration = [y0, x0, y1, x1]
-        print(point_ratio_1, point_ratio_2)
-        
-        grab_cut()
+        print((point_ratio_1, point_ratio_2))
+        gc = grabcut.GrabCutClass(self.rect.source, rect_ration)
+        gc.grab_cut()
+        # self.origin_source = gc.rst
         # self.update_source(...)
 
         # clear and display new image
@@ -289,7 +298,7 @@ class CanvasWidget(Widget):
         self.now_mode=Mode.NoneMode
         self.draw_rect=None
         self.draw_img()
-        self.update_source(self.origin_source) # new img
+        self.update_source('result.jpg') # new img
 
 
 class MainApp(App):
